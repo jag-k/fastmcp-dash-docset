@@ -1,0 +1,31 @@
+{
+  "name": "fastmcp-dash-docset",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:docset": "bun run scripts/build_dash_docset.ts",
+    "discover:tags": "bun run scripts/discover_fastmcp_tags.ts",
+    "fetch:docs": "bun run scripts/fetch_fastmcp_docs.ts",
+    "package:docset": "bun run scripts/package_docset.ts",
+    "generate:missing": "bun run scripts/generate_missing_docsets.ts",
+    "generate:feed": "bun run scripts/generate_feed.ts",
+    "update:dash-user-contribution": "bun run scripts/update_dash_user_contribution.ts",
+    "open:dash-user-contribution-pr": "bun run scripts/open_dash_user_contribution_pr.ts",
+    "validate:docset": "bun run scripts/validate_docset.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mdx-js/mdx": "^3.1.1",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "remark-gfm": "^4.0.1",
+    "shiki": "^4.0.2"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.13",
+    "@types/node": "^25.6.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,52 @@
+[
+  {
+    "version": "3.2.4",
+    "tag": "v3.2.4",
+    "archive": "docsets/FastMCP-3.2.4.tgz"
+  },
+  {
+    "version": "3.2.3",
+    "tag": "v3.2.3",
+    "archive": "docsets/FastMCP-3.2.3.tgz"
+  },
+  {
+    "version": "3.2.2",
+    "tag": "v3.2.2",
+    "archive": "docsets/FastMCP-3.2.2.tgz"
+  },
+  {
+    "version": "3.2.1",
+    "tag": "v3.2.1",
+    "archive": "docsets/FastMCP-3.2.1.tgz"
+  },
+  {
+    "version": "3.2.0",
+    "tag": "v3.2.0",
+    "archive": "docsets/FastMCP-3.2.0.tgz"
+  },
+  {
+    "version": "3.1.1",
+    "tag": "v3.1.1",
+    "archive": "docsets/FastMCP-3.1.1.tgz"
+  },
+  {
+    "version": "3.1.0",
+    "tag": "v3.1.0",
+    "archive": "docsets/FastMCP-3.1.0.tgz"
+  },
+  {
+    "version": "3.0.2",
+    "tag": "v3.0.2",
+    "archive": "docsets/FastMCP-3.0.2.tgz"
+  },
+  {
+    "version": "3.0.1",
+    "tag": "v3.0.1",
+    "archive": "docsets/FastMCP-3.0.1.tgz"
+  },
+  {
+    "version": "3.0.0",
+    "tag": "v3.0.0",
+    "archive": "docsets/FastMCP-3.0.0.tgz"
+  }
+]

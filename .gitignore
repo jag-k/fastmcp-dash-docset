@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.DS_Store
+
+# Temporary source checkouts used by fetch_fastmcp_docs.ts.
+.cache/
+.work/
