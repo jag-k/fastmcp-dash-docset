@@ -101,6 +101,16 @@ async function generateMissingDocsets(argv: string[]): Promise<GenerationResult>
       archivesDir,
       "--no-latest",
     ]);
+    await runStreamingCommand([
+      "bun",
+      "run",
+      "validate:docset",
+      "--",
+      "--docset",
+      docset,
+      "--archive",
+      join(archivesDir, `FastMCP-${item.version}.tgz`),
+    ]);
     generated.push(item);
   }
 

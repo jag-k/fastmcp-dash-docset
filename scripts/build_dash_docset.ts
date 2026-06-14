@@ -258,11 +258,13 @@ async function buildDocset(args: Args): Promise<void> {
       page = await renderPage(
         sourcePath,
         args.docsDir,
+        documentsDir,
         slug,
         navigation,
         args.name,
         args.onlineBaseUrl,
         missingMedia,
+        args.assetCacheDir,
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -297,11 +299,13 @@ async function buildDocset(args: Args): Promise<void> {
 async function renderPage(
   sourcePath: string,
   docsDir: string,
+  documentsDir: string,
   slug: string,
   navigation: NavItem[],
   docsetName: string,
   onlineBaseUrl: string,
   missingMedia: Set<string>,
+  assetCacheDir: string,
 ): Promise<RenderedPage> {
   const source = await readFile(sourcePath, "utf8");
   const { frontmatter, body } = splitFrontmatter(source);
@@ -325,8 +329,10 @@ async function renderPage(
   const content = await postProcessRenderedHtml(
     await renderMdx(body, context),
     outputPath,
+    documentsDir,
     onlineBaseUrl,
     missingMedia,
+    assetCacheDir,
   );
   const nav = renderNavigation(navigation, outputPath);
   const cssHref = htmlEscape(relativePathTo(outputPath, "docset.css"), true);
@@ -571,8 +577,10 @@ function slugToHtmlPath(slug: string): string {
 async function postProcessRenderedHtml(
   html: string,
   currentPath: string,
+  documentsDir: string,
   onlineBaseUrl: string,
   missingMedia: Set<string>,
+  assetCacheDir: string,
 ): Promise<string> {
   const withoutVideos = removeVideoTags(html);
   const localUrls = withoutVideos.replace(/\b(href|src)="\/([^"]*)"/g, (_match, attr: string, path: string) => {
@@ -582,7 +590,48 @@ async function postProcessRenderedHtml(
     const target = extname(path) ? path : slugToHtmlPath(path);
     return `${attr}="${htmlEscape(relativePathTo(currentPath, target), true)}"`;
   });
-  return highlightCodeBlocks(repairCalloutParagraphs(addExternalLinkTargets(localUrls, onlineBaseUrl)));
+  const localMedia = await localizeRenderedImageSources(localUrls, currentPath, documentsDir, assetCacheDir);
+  return highlightCodeBlocks(repairCalloutParagraphs(addExternalLinkTargets(localMedia, onlineBaseUrl)));
+}
+
+async function localizeRenderedImageSources(
+  html: string,
+  currentPath: string,
+  documentsDir: string,
+  assetCacheDir: string,
+): Promise<string> {
+  let result = html;
+  const images = [...html.matchAll(/<img\b[^>]*\bsrc="([^"]+)"[^>]*>/g)];
+  const downloaded = new Map<string, RemoteAsset | null>();
+
+  for (const match of images) {
+    const tag = match[0];
+    const src = decodeHtml(match[1] ?? "");
+    if (!src || src.startsWith("data:")) continue;
+
+    if (/^https?:\/\//.test(src)) {
+      let asset = downloaded.get(src);
+      if (asset === undefined) {
+        asset = await downloadRemoteHtmlAsset(src, documentsDir, assetCacheDir);
+        downloaded.set(src, asset);
+      }
+      if (!asset) {
+        result = result.replace(tag, "");
+        continue;
+      }
+
+      result = result.replace(tag, tag.replace(match[1] ?? "", htmlEscape(relativePathTo(currentPath, asset.localPath), true)));
+      continue;
+    }
+
+    const localSrc = src.split(/[?#]/, 1)[0] ?? "";
+    if (!localSrc || localSrc.startsWith("#") || localSrc.startsWith("mailto:")) continue;
+    if (!existsSync(join(dirname(join(documentsDir, currentPath)), localSrc))) {
+      result = result.replace(tag, "");
+    }
+  }
+
+  return result;
 }
 
 function addExternalLinkTargets(html: string, onlineBaseUrl: string): string {

@@ -35,6 +35,11 @@ The scheduled generator workflow can also update the FastMCP entry in
 `jag-k/Dash-User-Contributions` and open or update a PR against
 `Kapeli/Dash-User-Contributions`.
 
+`.github/workflows/test-docsets.yml` runs on every push and pull request. It
+typechecks the generator, validates every archive in `public/docsets/`, prepares
+a temporary Dash User Contributions layout, and runs Kapeli's
+`docsetcontrib --verify` against the generated FastMCP contribution.
+
 ### Workflow sequence
 
 `.github/workflows/generate.yml` is the main workflow. It runs on the daily

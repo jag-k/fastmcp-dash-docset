@@ -1,0 +1,50 @@
+name: Test FastMCP Docsets
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Validate generated archives
+        run: |
+          for archive in public/docsets/FastMCP-*.tgz public/docsets/FastMCP.tgz; do
+            echo "=== Validating ${archive} ==="
+            temp_dir="$(mktemp -d)"
+            tar -xzf "$archive" -C "$temp_dir"
+            bun run validate:docset -- \
+              --docset "$temp_dir/FastMCP.docset" \
+              --archive "$archive"
+            rm -rf "$temp_dir"
+          done
+
+      - name: Prepare Dash User Contributions fixture
+        run: |
+          rm -rf .cache/dash-user-contributions
+          mkdir -p .cache/dash-user-contributions
+          bun run update:dash-user-contribution -- \
+            --fork-dir "$PWD/.cache/dash-user-contributions"
+
+      - name: Run Dash docset verifier
+        working-directory: .cache/dash-user-contributions
+        run: |
+          curl --fail --location --show-error --silent \
+            https://kapeli.com/feeds/zzz/docsetcontrib.tgz \
+            | tar -xzf -
+          ./docsetcontrib --verify

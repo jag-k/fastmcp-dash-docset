@@ -3,7 +3,7 @@
 import { Database } from "bun:sqlite";
 import { existsSync } from "node:fs";
 import { readFile, readdir } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { parseCliArgs, runCommand, stringArg } from "../src/lib.ts";
 
 type SearchIndexRow = {
@@ -24,6 +24,7 @@ async function validateDocset(argv: string[]): Promise<void> {
 
   validateSearchIndex(indexPath, documentsDir);
   await validateNoRemoteDemoAssets(documentsDir);
+  await validateImageReferences(documentsDir);
   if (archive) await validateArchive(archive);
 
   console.log(`Validated ${docset}`);
@@ -83,6 +84,36 @@ async function validateNoRemoteDemoAssets(documentsDir: string): Promise<void> {
   console.log(`Validated ${htmlFiles.length} copied demo HTML files`);
 }
 
+async function validateImageReferences(documentsDir: string): Promise<void> {
+  const htmlFiles = await htmlFilesIn(documentsDir);
+  const remoteReferences: string[] = [];
+  const missingReferences: string[] = [];
+
+  for (const relativePath of htmlFiles) {
+    const content = await readFile(join(documentsDir, relativePath), "utf8");
+    for (const match of content.matchAll(/<img\b[^>]*\bsrc="([^"]+)"[^>]*>/g)) {
+      const src = decodeHtml(match[1] ?? "").split(/[?#]/, 1)[0] ?? "";
+      if (!src || src.startsWith("data:")) continue;
+      if (/^https?:\/\//.test(src)) {
+        remoteReferences.push(`${relativePath} -> ${src}`);
+        continue;
+      }
+      if (src.startsWith("#") || src.startsWith("mailto:")) continue;
+      if (!existsSync(join(dirname(join(documentsDir, relativePath)), src))) {
+        missingReferences.push(`${relativePath} -> ${src}`);
+      }
+    }
+  }
+
+  if (remoteReferences.length > 0) {
+    throw new Error(`HTML contains remote image references\n${remoteReferences.slice(0, 20).join("\n")}`);
+  }
+  if (missingReferences.length > 0) {
+    throw new Error(`HTML contains missing image references\n${missingReferences.slice(0, 20).join("\n")}`);
+  }
+  console.log(`Validated image references in ${htmlFiles.length} HTML files`);
+}
+
 async function htmlFilesIn(dir: string, prefix = ""): Promise<string[]> {
   const files: string[] = [];
   for (const entry of await readdir(dir, { withFileTypes: true })) {
@@ -95,6 +126,14 @@ async function htmlFilesIn(dir: string, prefix = ""): Promise<string[]> {
     }
   }
   return files;
+}
+
+function decodeHtml(value: string): string {
+  return value
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&");
 }
 
 async function validateArchive(archive: string): Promise<void> {
