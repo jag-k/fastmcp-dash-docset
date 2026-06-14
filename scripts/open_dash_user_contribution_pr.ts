@@ -20,54 +20,80 @@ async function openDashUserContributionPr(argv: string[]): Promise<void> {
 
   const owner = await originOwner(forkDir);
   const head = `${owner}:${branch}`;
-  const existing = (
-    await runCommand(
-      [
-        "gh",
-        "pr",
-        "list",
-        "--repo",
-        baseRepo,
-        "--head",
-        head,
-        "--state",
-        "open",
-        "--json",
-        "number,url",
-        "--jq",
-        "if length == 0 then \"\" else (.[0] | [.number, .url] | @tsv) end",
-      ],
-      forkDir,
-    )
-  ).trim();
+  const existing = await existingPullRequest(forkDir, baseRepo, baseBranch, head);
 
   if (existing) {
     const [number, url] = existing.split("\t");
     if (!number || !url) throw new Error(`Unexpected PR list output: ${existing}`);
-    await runCommand(["gh", "pr", "edit", number, "--repo", baseRepo, "--title", title, "--body", body], forkDir);
+    await runCommand(
+      [
+        "gh",
+        "api",
+        `repos/${baseRepo}/pulls/${number}`,
+        "--method",
+        "PATCH",
+        "-f",
+        `title=${title}`,
+        "-f",
+        `body=${body}`,
+      ],
+      forkDir,
+    );
     console.log(url);
     return;
   }
 
-  const url = await runCommand(
-    [
-      "gh",
-      "pr",
-      "create",
-      "--repo",
-      baseRepo,
-      "--head",
-      head,
-      "--base",
-      baseBranch,
-      "--title",
-      title,
-      "--body",
-      body,
-    ],
-    forkDir,
-  );
-  console.log(url.trim());
+  const url = (
+    await runCommand(
+      [
+        "gh",
+        "api",
+        `repos/${baseRepo}/pulls`,
+        "--method",
+        "POST",
+        "-f",
+        `title=${title}`,
+        "-f",
+        `head=${head}`,
+        "-f",
+        `base=${baseBranch}`,
+        "-f",
+        `body=${body}`,
+        "--jq",
+        ".html_url",
+      ],
+      forkDir,
+    )
+  ).trim();
+  console.log(url);
+}
+
+async function existingPullRequest(
+  forkDir: string,
+  baseRepo: string,
+  baseBranch: string,
+  head: string,
+): Promise<string> {
+  return (
+    await runCommand(
+      [
+        "gh",
+        "api",
+        `repos/${baseRepo}/pulls`,
+        "--method",
+        "GET",
+        "-f",
+        `head=${head}`,
+        "-f",
+        `base=${baseBranch}`,
+        "-f",
+        "state=open",
+        "--jq",
+        "if length == 0 then \"\" else (.[0] | [.number, .html_url] | @tsv) end",
+      ],
+      forkDir,
+    )
+  ).trim();
 }
 
 async function versionsArg(args: ReturnType<typeof parseCliArgs>, forkDir: string): Promise<string[]> {
