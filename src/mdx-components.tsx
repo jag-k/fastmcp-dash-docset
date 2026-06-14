@@ -1,4 +1,5 @@
-import { extname } from "node:path";
+import { existsSync } from "node:fs";
+import { extname, join } from "node:path";
 import { isValidElement, type ComponentType, type CSSProperties, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -11,6 +12,7 @@ export type SearchEntry = {
 type SdkSection = "Functions" | "Classes";
 
 export type RenderContext = {
+  docsDir: string;
   currentPath: string;
   missingMedia: Set<string>;
   onlineBaseUrl: string;
@@ -59,6 +61,7 @@ export function createMdxComponents(context: RenderContext): Record<string, Comp
     Note: calloutComponent("Note"),
     ParamField: fieldComponent("ParamField", context),
     Prompt,
+    PrefabDemoFrame: (props) => <PrefabDemoFrame {...props} context={context} />,
     PrefabPinWarning,
     ResponseField: fieldComponent("ResponseField", context),
     Step,
@@ -314,6 +317,43 @@ function PrefabPinWarning() {
   );
 }
 
+function PrefabDemoFrame({
+  demo,
+  height,
+  title,
+  context,
+}: ComponentProps & { context: RenderContext }) {
+  if (typeof demo !== "string" || demo.trim() === "") return null;
+
+  const demoSlug = demo.trim();
+  const demoHtmlPath = `apps/demos/${demoSlug}.html`;
+  const demoSourcePath = `apps/demos/${demoSlug}.py`;
+  const fallbackTitle = String(title ?? `${demoSlug} Prefab demo`);
+  const heightValue = typeof height === "number" ? `${height}px` : isStringProp(height) ? height : undefined;
+
+  if (!existsSync(join(context.docsDir, demoHtmlPath))) {
+    const hasDemoSource = existsSync(join(context.docsDir, demoSourcePath));
+    return (
+      <figure className="frame prefab-demo-frame">
+        <strong>{fallbackTitle}</strong>
+        <p>This interactive Prefab demo is not available in the offline docset.</p>
+        {hasDemoSource ? (
+          <a href={normalizeHref(`/${demoSourcePath}`, context)}>Open the demo source</a>
+        ) : null}
+      </figure>
+    );
+  }
+
+  return (
+    <iframe
+      className="docset-iframe-demo prefab-demo-frame"
+      src={normalizeHref(`/${demoHtmlPath}`, context)}
+      style={heightValue ? { height: heightValue, maxHeight: "none" } : undefined}
+      title={fallbackTitle}
+    />
+  );
+}
+
 function Prompt({ children, description }: ComponentProps) {
   return (
     <section className="prompt">
@@ -443,6 +483,10 @@ function childrenToText(node: ReactNode): string {
   if (Array.isArray(node)) return node.map(childrenToText).join("");
   if (isValidElement<{ children?: ReactNode }>(node)) return childrenToText(node.props.children);
   return "";
+}
+
+function isStringProp(value: unknown): value is string {
+  return typeof value === "string" && value !== "";
 }
 
 function uniqueAnchor(base: string, counts: Map<string, number>): string {

@@ -257,6 +257,7 @@ async function buildDocset(args: Args): Promise<void> {
     try {
       page = await renderPage(
         sourcePath,
+        args.docsDir,
         slug,
         navigation,
         args.name,
@@ -295,6 +296,7 @@ async function buildDocset(args: Args): Promise<void> {
 
 async function renderPage(
   sourcePath: string,
+  docsDir: string,
   slug: string,
   navigation: NavItem[],
   docsetName: string,
@@ -310,6 +312,7 @@ async function renderPage(
   const moduleName = isSdkPage ? sdkModuleName(body) : null;
   const pageEntryName = moduleName ?? fullTitle;
   const context: RenderContext = {
+    docsDir,
     currentPath: outputPath,
     onlineBaseUrl,
     missingMedia,
@@ -1156,7 +1159,7 @@ pre {
   border-radius: 12px;
   aspect-ratio: 16 / 10;
   display: block;
-  height: auto !important;
+  height: auto;
   max-height: 70vh;
   max-width: 100%;
   min-height: 320px;
