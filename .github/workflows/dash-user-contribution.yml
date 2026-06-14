@@ -1,0 +1,81 @@
+name: Update Dash User Contribution
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout generator
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          path: generator
+
+      - name: Checkout Dash User Contributions fork
+        uses: actions/checkout@v4
+        with:
+          repository: jag-k/Dash-User-Contributions
+          ref: master
+          path: dash-user-contributions
+          token: ${{ secrets.DASH_USER_CONTRIBUTIONS_TOKEN }}
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install generator dependencies
+        working-directory: generator
+        run: bun install --frozen-lockfile
+
+      - name: Update fork master from upstream
+        working-directory: dash-user-contributions
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/Kapeli/Dash-User-Contributions.git
+          git fetch upstream master
+          git switch master
+          git merge --ff-only upstream/master
+          git push origin master
+
+      - name: Recreate fastmcp branch from upstream master
+        working-directory: dash-user-contributions
+        run: git switch --force-create fastmcp upstream/master
+
+      - name: Sync FastMCP docset contribution
+        working-directory: generator
+        run: |
+          bun run update:dash-user-contribution -- \
+            --fork-dir "$GITHUB_WORKSPACE/dash-user-contributions"
+
+      - name: Commit contribution changes
+        id: contribution
+        working-directory: dash-user-contributions
+        run: |
+          git add docsets/FastMCP
+          if git diff --cached --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git commit -m "Update FastMCP Dash docset"
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+
+      - name: Push fastmcp branch
+        if: steps.contribution.outputs.has_changes == 'true'
+        working-directory: dash-user-contributions
+        run: git push --force-with-lease origin HEAD:fastmcp
+
+      - name: Create or update upstream PR
+        if: steps.contribution.outputs.has_changes == 'true'
+        working-directory: generator
+        env:
+          GH_TOKEN: ${{ secrets.DASH_USER_CONTRIBUTIONS_TOKEN }}
+        run: |
+          bun run open:dash-user-contribution-pr -- \
+            --fork-dir "$GITHUB_WORKSPACE/dash-user-contributions"

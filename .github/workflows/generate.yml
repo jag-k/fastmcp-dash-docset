@@ -13,6 +13,8 @@ permissions:
 jobs:
   generate:
     runs-on: ubuntu-latest
+    outputs:
+      has_new: ${{ steps.generate.outputs.has_new }}
     steps:
       - uses: actions/checkout@v4
 
@@ -36,3 +38,9 @@ jobs:
           git add public
           git commit -m "Update generated FastMCP docsets"
           git push
+
+  dash-user-contribution:
+    needs: generate
+    if: needs.generate.outputs.has_new == 'true'
+    uses: ./.github/workflows/dash-user-contribution.yml
+    secrets: inherit

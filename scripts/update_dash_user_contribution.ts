@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { existsSync } from "node:fs";
-import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import {
   booleanArg,
@@ -29,7 +29,7 @@ async function updateDashUserContribution(argv: string[]): Promise<void> {
   const values: TemplateValues = {
     ARCHIVE: "FastMCP.tgz",
     AUTHOR_LINK: stringArg(args, "author-link", "https://github.com/jlowin/fastmcp"),
-    AUTHOR_NAME: stringArg(args, "author-name", "FastMCP maintainers"),
+    AUTHOR_NAME: stringArg(args, "author-name", "Jag_k"),
     SPECIFIC_VERSIONS: latestOnly ? "[]" : specificVersionsJson(records),
     VERSION: version,
   };
@@ -74,15 +74,19 @@ async function syncVersionArchives(
   targetDir: string,
 ): Promise<void> {
   const versionsDir = join(targetDir, "versions");
-  await rm(versionsDir, { force: true, recursive: true });
+  await mkdir(versionsDir, { recursive: true });
 
   for (const record of records) {
     const source = join(archivesDir, `FastMCP-${record.version}.tgz`);
     if (!existsSync(source)) throw new Error(`Missing generated archive: ${source}`);
 
     const destinationDir = join(versionsDir, record.version);
+    const destination = join(destinationDir, "FastMCP.tgz");
+    const cdnPlaceholder = join(destinationDir, "FastMCP.tgz.txt");
+    if (existsSync(destination) || existsSync(cdnPlaceholder)) continue;
+
     await mkdir(destinationDir, { recursive: true });
-    await copyFile(source, join(destinationDir, "FastMCP.tgz"));
+    await copyFile(source, destination);
   }
 }
 
