@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <entry>
-  <version>3.4.2</version>
+  <version>3.4.3</version>
   <url>https://jag-k.github.io/fastmcp-dash-docset/docsets/FastMCP.tgz</url>
   <other-versions>
+    <version><name>3.4.3</name></version>
     <version><name>3.4.2</name></version>
     <version><name>3.4.1</name></version>
     <version><name>3.4.0</name></version>
