@@ -1,5 +1,10 @@
 [
   {
+    "version": "3.4.7",
+    "tag": "v3.4.7",
+    "archive": "docsets/FastMCP-3.4.7.tgz"
+  },
+  {
     "version": "3.4.6",
     "tag": "v3.4.6",
     "archive": "docsets/FastMCP-3.4.6.tgz"
