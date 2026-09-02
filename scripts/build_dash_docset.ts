@@ -373,7 +373,8 @@ function dashAnchor(type: string, name: string): string {
 }
 
 async function renderMdx(source: string, context: RenderContext): Promise<string> {
-  const sanitized = stripTopLevelImports(context.isSdkPage ? normalizeSdkMdx(source) : source);
+  const normalized = context.isSdkPage ? normalizeSdkMdx(source) : source;
+  const sanitized = stripTopLevelImports(escapeInvalidMdxTags(normalized));
   const mod = await evaluate(sanitized, {
     ...runtime,
     baseUrl: import.meta.url,
@@ -383,6 +384,26 @@ async function renderMdx(source: string, context: RenderContext): Promise<string
   return renderToStaticMarkup(
     createElement(Content, { components: createMdxComponents(context) as never }),
   );
+}
+
+function escapeInvalidMdxTags(source: string): string {
+  const result: string[] = [];
+  let inFence = false;
+
+  for (const line of source.split("\n")) {
+    if (line.trim().startsWith("```")) {
+      inFence = !inFence;
+      result.push(line);
+      continue;
+    }
+
+    // MDX treats a less-than sign followed by a digit as JSX, although JSX tag
+    // names cannot start with a digit. Encode it so prose such as `mcp<1.23`
+    // remains literal text rather than causing the whole docset build to fail.
+    result.push(inFence ? line : line.replace(/<(?![A-Za-z/!])(?=\d)/g, "&lt;"));
+  }
+
+  return result.join("\n");
 }
 
 function normalizeSdkMdx(source: string): string {
