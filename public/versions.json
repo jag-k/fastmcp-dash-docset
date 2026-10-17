@@ -65,6 +65,11 @@
     "archive": "docsets/FastMCP-4.0.0.tgz"
   },
   {
+    "version": "3.4.9",
+    "tag": "v3.4.9",
+    "archive": "docsets/FastMCP-3.4.9.tgz"
+  },
+  {
     "version": "3.4.8",
     "tag": "v3.4.8",
     "archive": "docsets/FastMCP-3.4.8.tgz"
